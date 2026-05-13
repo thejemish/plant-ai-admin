@@ -2,19 +2,69 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+## Environment
+
+Copy `.env.example` to `.env.local` and fill the server-side keys.
+
+BullMQ uses Redis for long-running dataset import and embedding jobs. For local development:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+REDIS_URL=redis://127.0.0.1:6379
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+For gated Hugging Face datasets such as `enalis/LeafNet`:
+
+1. Log in to Hugging Face.
+2. Open the dataset page and accept the access/contact-information terms.
+3. Create a read token at `https://huggingface.co/settings/tokens`.
+4. Set one of these server-only env vars:
+
+```bash
+HUGGINGFACE_TOKEN=hf_...
+# or
+HF_TOKEN=hf_...
+# or
+HUGGINGFACE_HUB_TOKEN=hf_...
+```
+
+Do not put the Hugging Face token in an admin form, client component, mobile app, or job payload.
+The import queue only stores dataset metadata; the worker reads the token from env when downloading parquet shards.
+
+### Leaf image storage
+
+By default, imported and uploaded leaf images are stored in the Supabase Storage `leaves` bucket. To keep Supabase Free storage usage low, configure Cloudflare R2 instead:
+
+```bash
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET=plant-ai-leaves
+R2_PUBLIC_URL=https://assets.example.com
+# Optional:
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+```
+
+`R2_PUBLIC_URL` must be a public bucket URL or custom domain because `leaf_samples.image_url` is used later by embedding jobs and mobile snapshots.
+
+Start Redis with Docker:
+
+```bash
+docker compose up -d redis
+```
+
+Run the admin server:
+
+```bash
+pnpm dev
+```
+
+Run the queue worker in a second terminal:
+
+```bash
+pnpm worker
+```
+
+The Next.js app queues import and embedding jobs. The BullMQ worker processes them outside the web server so large datasets and embeddings do not block or crash the admin UI.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

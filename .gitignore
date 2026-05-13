@@ -20,6 +20,11 @@
 # production
 /build
 
+# local model artifacts
+/models/**/*.onnx
+/models/**/*.ort
+/models/**/*.bin
+
 # misc
 .DS_Store
 *.pem
